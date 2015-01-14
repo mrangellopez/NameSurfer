@@ -1,0 +1,226 @@
+/*
+ * File: NameSurferGraph.java
+ * ---------------------------
+ * This class represents the canvas on which the graph of
+ * names is drawn. This class is responsible for updating
+ * (redrawing) the graphs whenever the list of entries changes
+ * or the window is resized.
+ */
+
+import acm.graphics.*;
+import java.awt.event.*;
+import java.util.*;
+import java.awt.*;
+
+public class NameSurferGraph extends GCanvas implements NameSurferConstants,
+ComponentListener {
+
+	/**
+	 * Creates a new NameSurferGraph object that displays the data.
+	 */
+	public NameSurferGraph() {
+		addComponentListener(this);
+		nameList = new ArrayList<NameSurferEntry>();
+		colorTracker = 0;
+	}
+
+	/**
+	 * Clears the list of name surfer entries stored inside this class.
+	 */
+	public void clear() {
+		nameList.clear();
+	}
+
+	/* Method: addEntry(entry) */
+	/**
+	 * Adds a new NameSurferEntry to the list of entries on the display. Note
+	 * that this method does not actually draw the graph, but simply stores the
+	 * entry; the graph is drawn by calling update.
+	 */
+	public void addEntry(NameSurferEntry entry) {
+		nameList.add(entry);
+	}
+
+	/**
+	 * removes an entry if the "Ungraph" button is clicked for a given name.
+	 */
+	public void removeEntry(NameSurferEntry entry) {
+		if(nameList.contains(entry)) {
+			nameList.remove(entry);
+		}
+	}
+
+	/**
+	 * Updates the display image by deleting all the graphical objects from the
+	 * canvas and then reassembling the display according to the list of
+	 * entries. Your application must call update after calling either clear or
+	 * addEntry; update is also called whenever the size of the canvas changes.
+	 */
+	public void update() {
+		decadeWidth = getWidth() / NDECADES;
+		range = getHeight() - 2 * GRAPH_MARGIN_SIZE;
+		removeAll();
+		addDecadeLines();
+		addHorizontalLines();
+		addDecadeLabels();
+		graphAllEntries();
+	}
+
+	/**
+	 * Adds the vertical lines that separate decades
+	 */
+	private void addDecadeLines() {
+		double y1 = 0;
+		double y2 = getHeight();
+		for (int i = 1; i < NDECADES; i++) {
+			double x = i * decadeWidth;
+			GLine line = new GLine(x, y1, x, y2);
+			add(line);
+		}
+	}
+
+	/**
+	 * Draws the offset horizontal lines at the top and bottom of the canvas
+	 */
+	private void addHorizontalLines() {
+		double x = getWidth();
+		double y1 = GRAPH_MARGIN_SIZE;
+		double y2 = getHeight() - GRAPH_MARGIN_SIZE;
+		add(new GLine(0, y1, x, y1));
+		add(new GLine(0, y2, x, y2));
+	}
+
+	/**
+	 * Adds the labels for each decade at the bottom of the canvas
+	 */
+	private void addDecadeLabels() {
+		GLabel label = new GLabel("");
+		double y = getHeight() - label.getHeight() + label.getAscent();
+		for (int i = 0; i < NDECADES; i++) {
+			int year = START_DECADE + (i * 10);
+			String yearString = "";
+			yearString += year;
+			label = new GLabel(yearString);
+			add(label, decadeWidth * i, y);
+		}
+	}
+
+	/**
+	 * Graphs all entries that have been input thus far in the JTextField
+	 */
+	private void graphAllEntries() {
+		for (int i = 0; i < nameList.size(); i++) {
+			NameSurferEntry entry = nameList.get(i);
+			colorTracker = i % 4;
+			graphIndividualEntry(entry);
+		}
+	}
+
+	/**
+	 * Graphs the lines and labels for each entry/name.
+	 */
+	private void graphIndividualEntry(NameSurferEntry entry) {
+		drawIndividualLine(entry);
+		drawIndividualLabels(entry);
+	}
+
+	/**
+	 * Draws the entire line for a name that traces the rank for each decade.
+	 * This line consists of ten separate lines that appear connected as one.
+	 */
+	private void drawIndividualLine(NameSurferEntry entry) {
+		double x1 = 0;
+		double y1 = entry.getRank(0) * (range / MAX_RANK) + GRAPH_MARGIN_SIZE;
+		if (y1 == GRAPH_MARGIN_SIZE) {
+			y1 = getHeight() - GRAPH_MARGIN_SIZE;
+		}
+		for (int i = 1; i < NDECADES; i++) {
+			double x2 = decadeWidth * (i);
+			double y2 = entry.getRank(i) * (range / MAX_RANK) + GRAPH_MARGIN_SIZE;
+			if (y2 == GRAPH_MARGIN_SIZE) {
+				y2 = getHeight() - GRAPH_MARGIN_SIZE;
+			}
+			GLine line = new GLine(x1, y1, x2, y2);
+			line.setColor(getColor());
+			add(line);
+			x1 = x2;
+			y1 = y2;
+		}
+	}
+
+	/**
+	 * Draws the labels on a line for any given name.
+	 * Labels have a name and the rank for each decade.
+	 */
+	private void drawIndividualLabels(NameSurferEntry entry) {
+		for (int i = 0; i < NDECADES; i++) {
+			String labelString = new String("");
+			labelString += entry.getName() + " ";
+			labelString += getRankString(entry, i);
+			GLabel label = new GLabel(labelString);
+			double x = decadeWidth * i + LABEL_OFFSET;
+			double y = entry.getRank(i) * (range / MAX_RANK)
+			+ GRAPH_MARGIN_SIZE - label.getAscent()/2 ;
+			if (y == GRAPH_MARGIN_SIZE - label.getAscent()/2) {
+				y = getHeight() - GRAPH_MARGIN_SIZE - label.getAscent()/2;
+			}
+			int fontSize = (int) ((getWidth() / ( (double) APPLICATION_WIDTH)) * 12);
+			String fontLabel = new String("Ariel -");
+			fontLabel += fontSize;
+			label.setColor(getColor());
+			label.setFont(fontLabel);
+			add(label, x, y);
+		}
+	}
+
+	/**
+	 * Returns the string form of a name's rank for i decades after 1900
+	 * @param NameSurferEntry entry of name
+	 */
+	private String getRankString(NameSurferEntry entry, int i) {
+		int rank = entry.getRank(i);
+		String rankString = "";
+		if (rank > 0) {
+			rankString += rank;
+		} else {
+			rankString += "*";
+		}
+		return rankString;
+	}
+
+	/**
+	 * Returns a color for any given name's line and label, depending on the
+	 * order the name was typed into the JTextField
+	 * @return Color of line and label
+	 */
+	private Color getColor() {
+		Color color = Color.BLACK;
+		switch(colorTracker) {
+		case 0:
+			color = Color.BLACK;
+			break;
+		case 1:
+			color = Color.RED;
+			break;
+		case 2: 
+			color = Color.BLUE;
+			break;
+		case 3:
+			color = Color.MAGENTA;
+			break;
+		}
+		return color;
+	}
+
+
+	private ArrayList<NameSurferEntry> nameList;
+	private double decadeWidth;
+	private double range;
+	private int colorTracker;
+
+	/* Implementation of the ComponentListener interface */
+	public void componentHidden(ComponentEvent e) {}
+	public void componentMoved(ComponentEvent e) {}
+	public void componentResized(ComponentEvent e) {update();}
+	public void componentShown(ComponentEvent e) {}
+}
