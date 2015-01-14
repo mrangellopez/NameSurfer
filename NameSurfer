@@ -1,0 +1,66 @@
+/*
+ * File: NameSurfer.java
+ * ---------------------
+ * When it is finished, this program will implement the viewer for
+ * the baby-name database described in the assignment handout.
+ */
+
+import acm.program.*;
+import java.awt.event.*;
+import javax.swing.*;
+
+public class NameSurfer extends Program implements NameSurferConstants {
+	
+	public static void main(String[] args) {
+		new NameSurfer().start(args);
+		}
+
+	/* Method: init() */
+	/**
+	 * This method has the responsibility for reading in the data base and
+	 * initializing the interactors at the top of the window.
+	 */
+	public void init() {
+		fontField = new JTextField(MAX_FONT_NAME);
+		JButton graphButton = new JButton("Graph");
+		JButton ungraphButton = new JButton("Ungraph");
+		JButton clearButton = new JButton("Clear");
+		fontField.addActionListener(this);
+		graphButton.addActionListener(this);
+		ungraphButton.addActionListener(this);
+		clearButton.addActionListener(this);
+		add(new JLabel("Name"), NORTH);
+		add(fontField, NORTH);
+		add(graphButton, NORTH);
+		add(ungraphButton, NORTH);
+		add(clearButton, NORTH);
+		dataBase = new NameSurferDataBase(NAMES_DATA_FILE);
+		graph = new NameSurferGraph();
+		add(graph);
+	}
+
+	/* Method: actionPerformed(e) */
+	/**
+	 * This class is responsible for detecting when the buttons are clicked, so
+	 * you will have to define a method to respond to button actions.
+	 */
+	public void actionPerformed(ActionEvent e) {
+		String cmd = e.getActionCommand();
+		if (cmd.equals("Graph") || e.getSource().equals(fontField)) {
+			String name = fontField.getText();
+			NameSurferEntry entry = dataBase.findEntry(name);
+			if(entry != null) graph.addEntry(entry);
+			fontField.setText("");
+		} else if (cmd.equals("Ungraph")) {
+			String name = fontField.getText();
+			NameSurferEntry entry = dataBase.findEntry(name);
+			if(entry != null) graph.removeEntry(entry);
+			fontField.setText("");
+		} else if (cmd.equals("Clear")) graph.clear();
+		graph.update();
+	}
+
+	private JTextField fontField;
+	private NameSurferDataBase dataBase;
+	private NameSurferGraph graph;
+}
